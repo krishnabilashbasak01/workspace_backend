@@ -1,0 +1,234 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider          = "mysql"
+  // url               = env("DATABASE_URL")
+  // url               = "mysql://u884132900_tbm_work:Krishnabasak01%3F@193.203.184.123:3306/u884132900_tbm_work"
+  // shadowDatabaseUrl = "mysql://u884132900_shadow_datadb:Krishnabasak01@193.203.184.123:3306/u884132900_shadow_datadb"
+  url               = "mysql://u884132900_workspace:Krishnabasak01@193.203.184.123:3306/u884132900_workspace"
+  shadowDatabaseUrl = "mysql://u884132900_shadow_datadb:Krishnabasak01@193.203.184.123:3306/u884132900_shadow_datadb"
+  // url               = "mysql://u884132900_workspace_beta:Krishnabasak01@193.203.184.123:3306/u884132900_workspace_beta"
+  // shadowDatabaseUrl = "mysql://u884132900_shadow_datadb:Krishnabasak01@193.203.184.123:3306/u884132900_shadow_datadb"
+  // shadowDatabaseUrl = "mysql://irccin_krishna:Krishnabasak01@103.117.212.223:3306/irccin_tbm_work"
+}
+
+model Client {
+  id                 Int                   @id @default(autoincrement())
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  name               String                @db.VarChar(100)
+  businessName       String                @db.VarChar(100)
+  username           String                @unique @db.VarChar(100)
+  joiningDate        DateTime              @db.Date
+  dob                DateTime?             @db.Date
+  email              String?
+  address            String                @db.VarChar(255)
+  profilePicture     String                @db.VarChar(2048)
+  platforms          SocialMediaPlatform[] @relation("ClientPlatforms")
+  weeklyCalendar     WeeklyCalendar[]      @relation("ClientCalendar")
+  packages           ClientPackage[]       @relation("ClientPackage")
+  socialMediaMetrics SocialMediaMetrics[]
+  tasks              Task[]
+  smes               Sme[]
+}
+
+model ClientPackage {
+  id               Int       @id @default(autoincrement())
+  clientId         Int
+  packageId        Int
+  client           Client    @relation("ClientPackage", fields: [clientId], references: [id], onDelete: Cascade)
+  package          Package   @relation(fields: [packageId], references: [id])
+  activationDate   DateTime
+  deactivationDate DateTime?
+  status           Boolean   @default(true) @db.TinyInt
+}
+
+model Sme {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  smeId     String   @db.VarChar(100)
+  role      String   @db.VarChar(50)
+  clientId  Int
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model Package {
+  id          Int             @id @default(autoincrement())
+  name        String          @db.VarChar(255)
+  description String          @db.Text
+  status      Boolean         @default(true) @db.TinyInt
+  clients     ClientPackage[]
+
+  @@unique([name])
+}
+
+model SocialMediaPlatform {
+  id        Int                  @id @default(autoincrement())
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+  name      String               @db.VarChar(255)
+  icon      String               @db.VarChar(2048)
+  status    Boolean              @default(true) @db.TinyInt
+  clients   Client[]             @relation("ClientPlatforms") // Many-to-many relationship with clients
+  contexts  SocialMediaContext[] @relation("PlatformToContext") // Many-to-Many Relationship
+  postTypes PostType[] // List of post types associated with the platform
+
+  // @@index([status]) // Added index on frequently queried field
+  CalendarEntry      CalendarEntry[]
+  socialMediaMetrics SocialMediaMetrics[]
+}
+
+model WeeklyCalendar {
+  id        Int             @id @default(autoincrement())
+  dayOfWeek DayOfWeek // Add an enum for days of the week
+  clientId  Int
+  client    Client          @relation("ClientCalendar", fields: [clientId], references: [id], onDelete: Cascade)
+  entries   CalendarEntry[] // All days are now represented in CalendarEntry table
+}
+
+model CalendarEntry {
+  id                    Int                 @id @default(autoincrement())
+  weeklyCalendarId      Int
+  socialMediaPlatformId Int
+  postTypeId            Int
+  quantity              Int // Quantity of posts for this platform on this day
+  weeklyCalendar        WeeklyCalendar      @relation(fields: [weeklyCalendarId], references: [id], onDelete: Cascade)
+  socialMediaPlatform   SocialMediaPlatform @relation(fields: [socialMediaPlatformId], references: [id])
+  postType              PostType            @relation(fields: [postTypeId], references: [id])
+
+  taskCalendarEntries Task[] @relation("TaskCalendarEntries") // Many-to-many relationship
+  taskId              Int?
+}
+
+model PostType {
+  id            Int                   @id @default(autoincrement())
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  name          String                @db.VarChar(255)
+  status        Boolean               @default(true) @db.TinyInt
+  platforms     SocialMediaPlatform[] // Many-to-many relationship with platforms
+  CalendarEntry CalendarEntry[]
+  tasks         Task[]
+}
+
+model SocialMediaContext {
+  id                 Int                   @id @default(autoincrement())
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  name               String                @db.VarChar(255)
+  status             Boolean               @default(true) @db.TinyInt
+  platforms          SocialMediaPlatform[] @relation("PlatformToContext")
+  socialMediaMetrics SocialMediaMetrics[]
+
+  @@index([status]) // Added index on frequently queried field
+}
+
+model SocialMediaMetrics {
+  id                    Int      @id @default(autoincrement())
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  clientId              Int // Referance to client
+  socialMediaPlatformId Int // Refence to social media platform
+  contextId             Int // Referance to social media context
+  date                  DateTime // the date for record metrics
+  metricType            String   @db.VarChar(255) // Example Followers , Likes etc.
+  value                 Int // Metric value example 10k followers
+
+  client              Client              @relation(fields: [clientId], references: [id],  onDelete: Cascade)
+  socialMediaPlatform SocialMediaPlatform @relation(fields: [socialMediaPlatformId], references: [id])
+  context             SocialMediaContext  @relation(fields: [contextId], references: [id])
+
+  @@index([clientId, socialMediaPlatformId, contextId, date])
+}
+
+model Task {
+  id         Int      @id @default(autoincrement())
+  createdAt  DateTime @default(now())
+  updateAt   DateTime @updatedAt
+  title      String   @db.VarChar(255)
+  postTypeId Int?
+  clientId   Int
+
+  scheduleDate    DateTime
+  designerId      String?         @db.VarChar(100)
+  workDate        DateTime?
+  statusId        Int
+  logs            TaskLog[]
+  messages        TaskMessage[]
+  postFromHome    Boolean         @default(false)
+  // statusId
+  client          Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  calendarEntries CalendarEntry[] @relation("TaskCalendarEntries") // Many-to-many relationship
+  status          TaskStatus?     @relation(fields: [statusId], references: [id], onDelete: Cascade)
+  postType        PostType?       @relation(fields: [postTypeId], references: [id], onDelete: SetNull)
+  calendarEntryId Int?
+  postLinks       TaskPostLink[] // One-to-many relationship
+  contents       TaskContent[] // One-to-many relationship
+
+  @@index([clientId, scheduleDate, workDate])
+}
+
+model TaskContent {
+  id Int @id @default(autoincrement())
+  taskId Int
+  title String @db.VarChar(255)
+  contentUrl String @db.Text
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model TaskPostLink {
+  id     Int    @id @default(autoincrement())
+  taskId Int
+  url    String @db.Text // URL for the post link
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model TaskLog {
+  id        Int        @id @default(autoincrement())
+  timestamp DateTime   @default(now())
+  taskId    Int
+  statusId  Int
+  comment   String?
+  task      Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  status    TaskStatus @relation(fields: [statusId], references: [id])
+}
+
+model TaskStatus {
+  id          Int       @id @default(autoincrement())
+  createdAt   DateTime  @default(now())
+  updateAt    DateTime  @updatedAt
+  name        String    @db.VarChar(255)
+  description String?   @db.VarChar(255)
+  tasks       Task[]
+  logs        TaskLog[]
+}
+
+model TaskMessage {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  taskId    Int
+  message   String   @db.LongText
+  task      Task     @relation(fields: [taskId], references: [id],onDelete: Cascade)
+  fromId    String   @db.VarChar(255)
+}
+
+enum DayOfWeek {
+  Sunday
+  Monday
+  Tuesday
+  Wednesday
+  Thursday
+  Friday
+  Saturday
+}
