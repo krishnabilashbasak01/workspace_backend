@@ -99,7 +99,7 @@ const redis = new Redis({
 });
 
 redis.on("connect", () => {
-  console.log("Redis connected");
+  // console.log("Redis connected");
 });
 
 redis.on("error", (err) => {
@@ -107,7 +107,7 @@ redis.on("error", (err) => {
 });
 
 redis.on("ready", () => {
-  console.log("Redis ready");
+  // console.log("Redis ready");
 });
 
 redis.on("reconnecting", () => {
@@ -138,7 +138,9 @@ io.on("connection", (socket) => {
     const { userId } = data;
 
     try {
-      await redis.set(`user:${userId}`, socket.id);
+      const userKey = `user:${userId}`;
+      await redis.set(userKey, socket.id);
+      await redis.expire(userKey, 60 * 60 * 9);
     } catch (err) {
       console.error("Error storing in Redis:", error);
     }
@@ -221,7 +223,7 @@ io.on("connection", (socket) => {
   socket.on("delete_task", async (taskId, callback) => {
     try {
       let response = await deleteTask(taskId);
-      console.log(response, "response");
+      // console.log(response, "response");
 
       if (response) {
         callback({
@@ -264,7 +266,7 @@ io.on("connection", (socket) => {
         });
       }
     } catch (error) {
-      console.log(error);
+      // console.log(error);
 
       callback({
         status: "error",
@@ -294,7 +296,7 @@ io.on("connection", (socket) => {
         callback({ status: "error", message: "Failed task add to bucket" });
       }
     } catch (error) {
-      console.log(error);
+      // console.log(error);
 
       callback({ status: "error", message: "Failed task add to bucket" });
     }
@@ -336,7 +338,7 @@ io.on("connection", (socket) => {
 
       return true;
     } catch (error) {
-      console.log(error);
+      // console.log(error);
 
       return false;
     }
@@ -345,10 +347,10 @@ io.on("connection", (socket) => {
   // after added send tasks to designer list
   const getTasksOfDesigner = async (designerId) => {
     try {
-      console.log("getting task ", designerId);
+      // console.log("getting task ", designerId);
 
       const socketIdOfDesigner = await redis.get(`user:${designerId}`);
-      console.log("socketIdOfDesigner", socketIdOfDesigner);
+      // console.log("socketIdOfDesigner", socketIdOfDesigner);
 
       const keyDesigner = `bucket:designer:${designerId}`;
       const tasks = await redis.zrange(keyDesigner, 0, -1);
@@ -362,7 +364,7 @@ io.on("connection", (socket) => {
 
       io.to(socketIdOfDesigner).emit("tasks_in_queue", _tasks);
     } catch (error) {
-      console.log("error to get designer tasks");
+      // console.log("error to get designer tasks");
     }
   };
 
@@ -382,7 +384,7 @@ io.on("connection", (socket) => {
       const _tasks = await getTasksByIdList({ idList: tasksIds });
       socket.emit("tasks_in_queue", _tasks);
     } catch (error) {
-      console.log("outer error : ", error);
+      // console.log("outer error : ", error);
     }
   };
 
@@ -611,7 +613,7 @@ io.on("connection", (socket) => {
                 io.to(socketId).emit("tasks_in_queue", _tasks);
               }
             }
-            console.log("socketIds", socketIds);
+            // console.log("socketIds", socketIds);
             for (const socketId of socketIds) {
               io.to(socketId).emit("message_updated_task", task);
             }
@@ -626,7 +628,7 @@ io.on("connection", (socket) => {
         }
       }
     } catch (err) {
-      console.log(err);
+      // console.log(err);
 
       callback({ status: "error", message: "Status Update Failed" });
     }
@@ -721,7 +723,7 @@ io.on("connection", (socket) => {
 
       callback({ status: "success", message: "Rearranged Successfully" });
     } catch (error) {
-      console.log(error);
+      // console.log(error);
       callback({ status: "error", message: "Status Update Failed" });
     }
   });
@@ -731,10 +733,12 @@ io.on("connection", (socket) => {
     try {
       const { task, user } = data;
 
-      console.log("task", task);
+      // console.log("task", task);
 
       // find in bucket
       const key = `bucket:total`;
+      const keyDesigner = `bucket:designer:${task.designerId}`;
+
       const tasks = await redis.zrange(key, 0, -1);
 
       // Find the key containing this task
@@ -744,7 +748,13 @@ io.on("connection", (socket) => {
           break;
         }
       }
-
+      const designerTasks = await redis.zrange(keyDesigner, 0, -1);
+      for (const item of designerTasks) {
+        if (JSON.parse(item).id === `${task.id}`) {
+          await redis.zrem(keyDesigner, item);
+          break;
+        }
+      }
       // // Update task status to removed/pending
       await updateTaskStatus(
         task.id,
@@ -793,7 +803,7 @@ io.on("connection", (socket) => {
         io.to(id).emit("tasks_in_queue", _tasks);
       }
     } catch (error) {
-      console.log(error);
+      // console.log(error);
     }
   };
 
@@ -950,7 +960,6 @@ io.on("connection", (socket) => {
     }
   });
 
-
   // Handle disconnection
   socket.on("disconnect", async () => {
     try {
@@ -980,7 +989,7 @@ io.on("connection", (socket) => {
     } catch (error) {
       console.error("Error removing from Redis:", error);
     }
-    console.log("Client disconnected:", socket.id);
+    // console.log("Client disconnected:", socket.id);
   });
 });
 
