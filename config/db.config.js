@@ -1,4 +1,5 @@
+require("dotenv").config();
+
 module.exports = {
-  MONGO_URI:
-    "mongodb+srv://2022krishnabasak:Krishnabasak01@cluster0.rjqrjan.mongodb.net/tbm_work_flow",
+  MONGO_URI: process.env.MONGO_URI,
 };

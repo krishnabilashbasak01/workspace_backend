@@ -13,11 +13,11 @@ datasource db {
   // url               = env("DATABASE_URL")
   // url               = "mysql://u884132900_tbm_work:Krishnabasak01%3F@193.203.184.123:3306/u884132900_tbm_work"
   // shadowDatabaseUrl = "mysql://u884132900_shadow_datadb:Krishnabasak01@193.203.184.123:3306/u884132900_shadow_datadb"
-  url               = "mysql://u884132900_workspace:Krishnabasak01@193.203.184.123:3306/u884132900_workspace"
-  shadowDatabaseUrl = "mysql://u884132900_shadow_datadb:Krishnabasak01@193.203.184.123:3306/u884132900_shadow_datadb"
-  // url               = "mysql://u884132900_workspace_beta:Krishnabasak01@193.203.184.123:3306/u884132900_workspace_beta"
+  // url               = "mysql://u884132900_workspace:Krishnabasak01@193.203.184.123:3306/u884132900_workspace"
   // shadowDatabaseUrl = "mysql://u884132900_shadow_datadb:Krishnabasak01@193.203.184.123:3306/u884132900_shadow_datadb"
-  // shadowDatabaseUrl = "mysql://irccin_krishna:Krishnabasak01@103.117.212.223:3306/irccin_tbm_work"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+ 
 }
 
 model Client {

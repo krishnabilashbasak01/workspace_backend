@@ -73,13 +73,13 @@ const PORT = process.env.PORT || 3000;
 // app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
 
 // Redis// Set up Redis connection (assuming Redis is locally running)
-const redis = new Redis({
-  username: "default",
-  password: "0Hgvu2Ink483EdXtTKgYPlId8DepKlcy", // specify if Redis requires authentication
-  host: "redis-16679.crce179.ap-south-1-1.ec2.redns.redis-cloud.com", // replace with your Redis host if different
-  port: 16679, // default Redis port
-  db: 0, // default database in Redis
-});
+// const redis = new Redis({
+//   username: "default",
+//   password: "0Hgvu2Ink483EdXtTKgYPlId8DepKlcy", // specify if Redis requires authentication
+//   host: "redis-16679.crce179.ap-south-1-1.ec2.redns.redis-cloud.com", // replace with your Redis host if different
+//   port: 16679, // default Redis port
+//   db: 0, // default database in Redis
+// });
 
 // // beta
 // const redis = new Redis({
@@ -89,6 +89,30 @@ const redis = new Redis({
 //   port: 19288, // default Redis port
 //   db: 0, // default database in Redis
 // });
+
+const redis = new Redis({
+  username: process.env.REDIS_USER || "default",
+  password: process.env.REDIS_PASSWORD, // specify if Redis requires authentication
+  host: process.env.REDIS_HOST, // replace with your Redis host if different
+  port: process.env.REDIS_PORT, // default Redis port
+  db: 0, // default database in Redis
+});
+
+redis.on("connect", () => {
+  console.log("Redis connected");
+});
+
+redis.on("error", (err) => {
+  console.error("Redis error:", err);
+});
+
+redis.on("ready", () => {
+  console.log("Redis ready");
+});
+
+redis.on("reconnecting", () => {
+  console.log("Redis reconnecting");
+});
 
 // New socket server change
 const server = http.createServer(app);
@@ -305,7 +329,7 @@ io.on("connection", (socket) => {
         await redis.expire(keyDesigner, 60 * 60 * 12);
 
         const _res = await updateTaskStatus(task.id, 3, "Task Added in queue");
-        getTasksOfDesigner();
+        getTasksOfDesigner(data.task.designerId);
         getAllBucket();
         return true;
       }
